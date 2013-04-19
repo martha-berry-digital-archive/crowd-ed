@@ -1,9 +1,11 @@
 <?php 
     set_current_record('item', $item);
-    queue_js_file('elements');
+    queue_js_file(array('elements','jquery.elevateZoom-2.5.5.min'));
     echo head();
     $elements = $item->getAllElements();
     $id = $item->id;
+    $files = $item->Files;
+    
 ?>
 <script type="text/javascript" charset="utf-8">
 //<![CDATA[
@@ -14,7 +16,18 @@ jQuery(window).load(function () {
 jQuery(document).bind('omeka:elementformload', function (event) {
     Omeka.Elements.makeElementControls(event.target, <?php echo js_escape(url('participate/person-name-element-form')); ?>,'Item'<?php if ($id = metadata('item', 'id')) echo ', '.$id; ?>);
 });
+
+jQuery(document).ready(function($) {
+<?php
+    $i = 0;
+    foreach ($files as $file) {
+        echo '$("#image-'. $i .'").elevateZoom({lensSize: 200, zoomWindowWidth: 400, zoomWindowHeight: 400});';
+        $i++;
+    }
+?>
+});
 //]]>
+
 </script>
 
 <div id="helpModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
@@ -45,7 +58,7 @@ jQuery(document).bind('omeka:elementformload', function (event) {
         </dl>
         <dl>
             <dt>The document contains more than one author or recipient:</dt>
-            <dd>Click on XXX to add additional author and/or recipient fields. </dd>
+            <dd>Click on <button class="btn btn-small btn-info"><i class="icon-plus-sign"></i> Add another ...</button> to add additional author and/or recipient fields. </dd>
         </dl>
         <dl>
             <dt>A title or name is typed or written in by someone other than the author: </dt>
@@ -65,17 +78,18 @@ jQuery(document).bind('omeka:elementformload', function (event) {
         </dl>
     </div>
     <div class="modal-footer">
-        <button class="btn btn-primary" data-dismiss="modal" aria-hidden="true">Close</button>
+        <button class="btn btn-primary" data-dismiss="modal" aria-hidden="true"><i class="icon-remove-sign"></i> Close</button>
     </div>
 </div>
 <div class="row">
     <div class="span6">
         <p class="lead" style="text-align:center;">Item Identification #: <?php echo metadata($item,array('Dublin Core','Identifier')); ?></p>
         <?php 
-            echo files_for_item(
-            array('imageSize'=>'fullsize'),
-            array('class'=>'image','style'=>'text-align:center'), 
-            null);
+            $i = 0;
+            foreach ($files as $file) {
+                echo file_image('fullsize',array('id'=>'image-'.$i, 'data-zoom-image'=>'/files/original/'.$file->filename),$file);
+                $i++;
+            }
         ?>
     </div>
     <div class="span6">
@@ -123,21 +137,34 @@ jQuery(document).bind('omeka:elementformload', function (event) {
         </div>
             
         <hr />
+        <div id="brownModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="brownModalLabel" aria-hidden="true">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h3 id="brownModalLabel"><i class="icon-question-sign"></i> Unsigned and Brown</h3>
+            </div>
+            <div class="modal-body">
+                <img class="pull-right padded span2" src="<?php echo img('GettingStarted/MBBrownPaper.jpg'); ?>" alt="Unsigned and brown document example" />
+                Berry and her office staff retained copies of nearly every letter she and the Schools sent. 
+                Most of these are unsigned, but we are confident about their authenticity and about Martha Berry's 
+                role as author. If you’re editing an <em>unsigned and brown</em>, you should enter <strong>Martha Berry</strong> as the <strong>author</strong>.
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" data-dismiss="modal" aria-hidden="true"><i class="icon-remove-sign"></i> Close</button>
+            </div>
+        </div>
+        <div class="alert alert-warning"><a href="#brownModal" role="button" data-toggle="modal" class="text-warning"><i class="icon-question-sign"></i> <em>Is the document unsigned and brown?</em></a></div>
         
         <?php echo $this->personNameElementForm($elements['Dublin Core']['Creator'], $item, $options=array('columnSpan'=>'3')); ?>
-        
         <hr />
         
-        <?php // todo: enhancement - fix this to only do recipient for the right kind of document - gsb
-            echo $this->personNameElementForm($elements['Item Type Metadata']['Recipient'], $item, $options=array('columnSpan'=>'3'));
-        ?>
+        <?php echo $this->personNameElementForm($elements['Item Type Metadata']['Recipient'], $item, $options=array('columnSpan'=>'3')); ?>
         
         <hr />
         
         <div class="row">
             <div class="span3">
                 <div class="row">
-                    <div><label for="tag-search" class="span3"><i class="icon-tags"></i> Add Tags</label></div>  
+                    <div class="span3" style="margin-bottom: .5em;"><label for="tag-search" style="display:inline;"><i class="icon-tags"></i> Tag Me!</label> <a href="#" rel="tooltip" class="tooltipper" title="A tag is a keyword or label that describes a document's subject."><i class="icon-info-sign"></i></a></div>  
                 </div>
                 <div class="row">
                     <div class="add-tags span3"><?php 

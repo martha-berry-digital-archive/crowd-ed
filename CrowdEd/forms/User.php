@@ -10,7 +10,6 @@ class CrowdEd_Form_User extends Omeka_Form_User {
         $this->removeElement('name');
         $this->removeElement('submit');
         
-        // adapt inputs length, bootstrap-style
         $this->getElement('email')->setAttrib('class','span4 user-form-input');
         
         $this->getElement('username')->setAttrib('class','span2 user-form-input');
@@ -20,9 +19,8 @@ class CrowdEd_Form_User extends Omeka_Form_User {
         
         $this->addElement('text','first_name',array(
             'label' => __('First Name'),
-            'description' => $this->_getHelpText('Your first name'),
+            'description' => $this->_getHelpText('Your first (given) name'),
             'value'=> $this->_entity->first_name,
-            'size' => '30',
             'class' => 'span3 user-form-input',
             'required' => false,
             'validators' => array(
@@ -30,11 +28,12 @@ class CrowdEd_Form_User extends Omeka_Form_User {
             )
         ));
         
+        $this->getElement('first_name')->setOrder(10);
+        
         $this->addElement('text','last_name',array(
             'label' => __('Last Name'),
-            'description' => $this->_getHelpText('Your last name (surname)'),
+            'description' => $this->_getHelpText('Your last name (surname or family name)'),
             'value' => $this->_entity->last_name,
-            'size' => '30',
             'class'=> 'span3 user-form-input',
             'required' => false,
             'validators' => array(
@@ -42,6 +41,7 @@ class CrowdEd_Form_User extends Omeka_Form_User {
             )
         ));
         
+        $this->getElement('last_name')->setOrder(15);
         
         $this->addElement('text','institution',array(
             'label' => __('Institution or Affiliation'),
@@ -54,19 +54,11 @@ class CrowdEd_Form_User extends Omeka_Form_User {
             )
         ));
         
-        $this->addDisplayGroup(
-                    array('first_name','last_name','institution'),
-                    'name-group',
-                    array('legend'=>'Names for Attribution',
-                        'class'=>'user-fieldset',
-                        'description'=>'Although not required, your first and last name will be used for attribution (e.g. in item citations) for any contributions you make to the site. Your institution (if desired) will be shown in your public profile.')
-                        );
-        $this->getDisplayGroup('name-group')->setDecorators(array('Description','FormElements','Fieldset'));
-        
+        $this->getElement('institution')->setOrder(20);
         
         $this->addElement('password', 'new_password',
             array(
-                    'label'         => __('Password'),
+                    'label'         => __('New Password'),
                     'required'      => true,
                     'class'         => 'textinput user-form-input',
                     'validators'    => array(
@@ -98,24 +90,56 @@ class CrowdEd_Form_User extends Omeka_Form_User {
                     )
             )
         );
+        
+        $this->getElement('new_password')->setOrder('40');
+        
         $this->addElement('password', 'new_password_confirm',
-                        array(
-                                'label'         => 'Password again for match',
-                                'required'      => true,
-                                'class'         => 'textinput user-form-input',
-                                'errorMessages' => array(__('New password must be typed correctly twice.'))
-                        )
+                array(
+                        'label'         => 'Password again for match',
+                        'required'      => true,
+                        'class'         => 'textinput user-form-input',
+                        'errorMessages' => array(__('New password must be typed correctly twice.'))
+                )
         );
         
-        if (current_url() == '/user/update-account') {
-            $this->addDisplayGroup(
-                    array('new_password','new_password_confirm'),
-                    'password-group',
-                    array('class'=>'user-fieldset',
-                        'description'=>'If you don\'t want to change your password at this time, simply leave the following fields blank.')
-                        );
-            $this->getDisplayGroup('password-group')->setDecorators(array('Description','FormElements','Fieldset'));
-        }
+        $this->getElement('new_password_confirm')->setOrder('45');
+        
+        $this->addElement('checkbox','private', array(
+                                  'checked' => $this->_entity->private,
+                                  'label'=>'No thanks! Please make my profile private.',
+                                  'values'=> array(1, 0),
+                                  'class'=>'checkbox',
+                                  //'description'=>'Check the box below if you do NOT wish your name to be included in citations, community progress listings, or in a public profile page. Don\'t worry, we never publicly display your email address.'
+                                  )
+                    );
+        $this->getElement('private')->addDecorator('Label', array('class' => 'checkbox inline','placement'=>'APPEND'));
+        $this->getElement('private')->addDecorator('HtmlTag',array('tag'=>'span', 'class'=>'privacy-checkbox'));
+        
+        $this->getElement('private')->setOrder(25);
+        
+        $this->addDisplayGroup(
+            array('first_name','last_name','institution','private'),
+            'names-group',
+            array('legend'=>'Names for Attribution',
+                'class'=>'user-fieldset',
+                'description'=>'MBDA recognizes community participation. Your first and last name will be used to acknowledge any contributions you make to the site (e.g. in item citations). Your institution or affiliation will be shown in your public profile.')
+        );
+        
+        $this->addDisplayGroup(
+            array('username','email'),
+            'username-group',
+            array('legend'=>'Username and Email',
+                'class'=>'user-fieldset',
+                //'description'=>'Although your username and email may be changed later, they must both be unique within the site.'   
+                )
+        );
+        
+        $this->addDisplayGroup(
+            array('new_password','new_password_confirm'),
+            'password-group',
+            array('class'=>'user-fieldset',
+                'legend'=>'Password')
+        );
         
         if (get_option('crowded_terms_of_service')) {
             
@@ -139,7 +163,7 @@ class CrowdEd_Form_User extends Omeka_Form_User {
             $this->addElement($terms);
             
             // TODO: fix route; use request
-            if (current_url() != '/participate/edit-profile') {
+            //if (current_url() != '/participate/edit-profile') {
                 $check = $this->createElement('checkbox',
                                   'terms', array(
                                     'label'=>'I agree to the Terms and Conditions of this site.',
@@ -148,22 +172,26 @@ class CrowdEd_Form_User extends Omeka_Form_User {
                 $check->addDecorator('Label', array('class' => 'checkbox inline','placement'=>'APPEND'));
                 $check->addDecorator('HtmlTag',array('tag'=>'span'));
                 $this->addElement($check);
-            }
-        }
+                $this->addDisplayGroup(
+                    array('formNote','terms'),
+                    'terms-group',
+                    array('legend'=>'Terms and Conditions',
+                        'class'=>'user-fieldset'
+                        ));
         
-        if(Omeka_Captcha::isConfigured() && (get_option('guest_user_recaptcha') == 'on')) {
-            $this->addElement('captcha', 'captcha',  array(
-                'class' => 'hidden',
-                'style' => 'display: none;',
-                'label' => "Please verify you're a human",
-                'type' => 'hidden',
-                'captcha' => Omeka_Captcha::getCaptcha()
-            ));
-        }
+                $this->getDisplayGroup('terms-group')->setDecorators(array('FormElements','Fieldset'));
         
+            //}
+            
+            $this->setDisplayGroupDecorators(array('Description','FormElements','Fieldset'));
+        
+        
+        }
         
         $this->addElement('submit', 'submit', array('label' => 'Submit','class'=>'btn btn-primary','style'=>'margin-top:1em;'));
-    }
+        $this->getElement('submit')->setOrder(100);
+        
+        }
     
     public function setEntity(Entity $entity) {
         $this->_entity = $entity;

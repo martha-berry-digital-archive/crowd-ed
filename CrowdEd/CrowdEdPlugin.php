@@ -9,6 +9,7 @@
 defined('CROWDED_DIR') or define('CROWDED_DIR',dirname(__FILE__));
 defined('CROWDED_PLUGIN_VERSION') or define('CROWDED_PLUGIN_VERSION', get_plugin_ini(CROWDED_DIR, 'version'));
 defined('CROWDED_USER_ROLE') or define('CROWDED_USER_ROLE','crowd-editor');
+defined('CROWDED_SUPER_ROLE') or define('CROWDED_SUPER_ROLE','crowd-super');
 
 class CrowdEdPlugin extends Omeka_Plugin_AbstractPlugin {
     
@@ -141,8 +142,7 @@ class CrowdEdPlugin extends Omeka_Plugin_AbstractPlugin {
     }
     
     public function hookAdminItemsBrowse($args) {
-        var_dump($args['view']);
-        die();
+        
     }
     
     public function hookPublicHead($args) {
@@ -185,6 +185,11 @@ class CrowdEdPlugin extends Omeka_Plugin_AbstractPlugin {
         $crowdEditor = new Zend_Acl_Role(CROWDED_USER_ROLE);
         $acl->addRole($crowdEditor);
         $acl->allow($crowdEditor,array($participateResource,'Items','Tags','Search')); //todo: refine crowd-editor permissions
+    
+        $crowdSuper = new Zend_Acl_Role(CROWDED_SUPER_ROLE);
+        $acl->addRole($crowdSuper);
+        $acl->allow($crowdSuper,array($participateResource,'Items','Tags','Search')); //todo: refine crowd-super permissions
+        
     }
     
     public function hookAfterSaveItem($args) {
@@ -485,7 +490,7 @@ class CrowdEdPlugin extends Omeka_Plugin_AbstractPlugin {
         $accountUrl = url('/user/update-account');
         $html = '<ul class="unstyled">';
         $html .= "<li class='lead'><a href='$accountUrl'><i class='icon-user'></i> Update Account Information</a></li>";
-        $html .= '<li class="lead"><a href="/participate/profile/id/'. current_user()->id . '"><i class="icon-share"></i> View Public Profile</a></li>';
+        $html .= '<li class="lead"><a href="/participate/profile/'. current_user()->id . '"><i class="icon-share"></i> View Public Profile</a></li>';
         $html .= "</ul>";
         $widget['content'] = $html;
         $widgets[] = $widget;
@@ -544,12 +549,12 @@ class CrowdEdPlugin extends Omeka_Plugin_AbstractPlugin {
         
         $html = '<hr /><h4><i class="icon-edit"></i> Participate</h4>';
         if ($lockStatus == 0) {
-            $html .= '<div><a href="/participate/edit/'. $item->id .'">Assist us with editing and cataloging this item!</a></div>';
+            $html .= '<div><a href="/participate/edit/'. $item->id .'" class="btn btn-success"><i class="icon-edit"></i> Assist us with editing and cataloging this item!</a></div>';
         } else {
             $html .= '<div><p class="alert alert-info"><i class="icon-lock"></i> This item has already been edited and is now locked.</p></div>';
             $user = current_user();
-            if ($user && ($user->role == 'admin' || $user->role == 'super')) { // TODO: fix routes
-                $html .= '<p><strong>As an administrative user, <a href="/participate/edit/'. $item->id .'">you may still edit this item</a>.</p>';
+            if ($user && ($user->role == 'admin' || $user->role == 'super' || $user->role == 'crowd-super')) { // TODO: fix routes
+                $html .= '<p><strong>As an administrative user, <a href="/participate/edit/'. $item->id .'">you may still edit this item</a>.</strong></p>';
             }  else {
                 $html .= '<p><a href="/participate/edit/'. get_view()->itemEditing()->getRandomUneditedItem(get_view()->_db)->id .'"><strong>How about trying an unedited item?</strong></a></p>';
             }
@@ -563,7 +568,7 @@ class CrowdEdPlugin extends Omeka_Plugin_AbstractPlugin {
         $user = current_user();
         $content = '<div class="navbar navbar-fixed-top"><div id="crowded-navbar" class="navbar-inner"><div class="brand" style="margin: 0;">Crowd-Ed</div><ul class="nav pull-right">';
         if ($user) {          // TODO: fix routes
-            $content .= '<li><a href="/user/me">' . get_view()->gravatar($user->email,array('imgSize' => 22)) . ' ' . $user->username . '</a></li><li><a href="' . url(array('action'=>'logout', 'controller'=>'users'), 'default') . '"><i class="icon-off"></i> Logout</a></li>';
+            $content .= '<li><a href="/user/me">' . get_view()->gravatar($user->email,array('imgSize' => 22)) . ' ' . $user->username . '</a></li><li><a href="/users/logout"><i class="icon-off"></i> Logout</a></li>';
         } else {
             $content .= '<li><a href="/users/login"><i class="icon-signin"></i> Log in</a></li><li><a href="/user/register"><i class="icon-cog"></i> Create Account</a></li>';
         }
